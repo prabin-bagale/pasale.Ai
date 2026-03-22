@@ -7,6 +7,10 @@ require('dotenv').config();
 // Connect to database
 require('./db');
 
+// Routes
+const healthRoute = require('./routes/health');
+const authRoute = require('./routes/auth');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -16,17 +20,16 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Use routes
+app.use('/api/health', healthRoute);
+app.use('/api/auth', authRoute);
+
 // Test route
 app.get('/', (req, res) => {
   res.json({
     message: 'Pasale AI API is running!',
     version: '0.1.0'
   });
-});
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
 });
 
 // Start server
