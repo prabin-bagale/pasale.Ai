@@ -14,6 +14,7 @@ const customersRoute = require('./routes/customers');
 const transactionsRoute = require('./routes/transactions');
 const smsRoute = require('./routes/sms');
 const { startJobs } = require('./jobs/scheduler');
+const inventoryRoute = require('./routes/inventory');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoute);
 app.use('/api/customers', customersRoute);
 app.use('/api/transactions', transactionsRoute);
 app.use('/api/sms', smsRoute);
+app.use('/api/products', inventoryRoute);
 startJobs();
 
 // Test route
