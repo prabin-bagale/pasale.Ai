@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
+import OTPScreen from './OTPScreen';
 
-export default function LoginScreen() {
+export default function LoginScreen({ onLoginSuccess }) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   function handleSendOTP() {
-    // Validate phone number
     if (!phone || phone.length !== 10) {
       Alert.alert('Galat number', 'Nepal ko 10 digit phone number halunus');
       return;
@@ -22,11 +23,20 @@ export default function LoginScreen() {
 
     setLoading(true);
 
-    // We will connect to real API later
     setTimeout(() => {
       setLoading(false);
-      Alert.alert('OTP Pathayo!', `${phone} ma OTP pathaiyo`);
+      setOtpSent(true);
     }, 1500);
+  }
+
+  // Show OTP screen after OTP is sent
+  if (otpSent) {
+    return (
+      <OTPScreen
+        phone={phone}
+        onSuccess={onLoginSuccess}
+      />
+    );
   }
 
   return (
