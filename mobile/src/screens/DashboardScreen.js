@@ -1,4 +1,7 @@
-import React from 'react';
+import InventoryScreen from './InventoryScreen';
+import PaisaReportScreen from './PaisaReportScreen';
+import AddUdharScreen from './AddUdharScreen';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +9,43 @@ import {
   TouchableOpacity,
   ScrollView
 } from 'react-native';
+import UdharBookScreen from './UdharBookScreen';
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ shopId }) {
+ const [screen, setScreen] = useState('dashboard');
+
+if (screen === 'udharBook') {
+    return (
+      <UdharBookScreen
+        onBack={() => setScreen('dashboard')}
+        shopId={shopId}
+      />
+    );
+  }
+  if (screen === 'addUdhar') {
+    return (
+      <AddUdharScreen
+        onBack={() => setScreen('dashboard')}
+        onSuccess={() => setScreen('dashboard')}
+      />
+    );
+  }
+  if (screen === 'inventory') {
+    return (
+      <InventoryScreen
+        onBack={() => setScreen('dashboard')}
+      />
+    );
+  }
+
+  if (screen === 'paisaReport') {
+    return (
+      <PaisaReportScreen
+        onBack={() => setScreen('dashboard')}
+      />
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
 
@@ -26,30 +64,41 @@ export default function DashboardScreen() {
 
       <View style={styles.menuGrid}>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setScreen('udharBook')}
+        >
           <Text style={styles.menuIcon}>📒</Text>
           <Text style={styles.menuLabel}>Udhar Book</Text>
           <Text style={styles.menuSub}>Customers hernus</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuIcon}>➕</Text>
-          <Text style={styles.menuLabel}>Udhar Dinus</Text>
-          <Text style={styles.menuSub}>Credit log garnus</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+  style={styles.menuItem}
+  onPress={() => setScreen('addUdhar')}
+>
+  <Text style={styles.menuIcon}>➕</Text>
+  <Text style={styles.menuLabel}>Udhar Dinus</Text>
+  <Text style={styles.menuSub}>Credit log garnus</Text>
+</TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuIcon}>📦</Text>
-          <Text style={styles.menuLabel}>Inventory</Text>
-          <Text style={styles.menuSub}>Stock hernus</Text>
-        </TouchableOpacity>
+       <TouchableOpacity
+  style={styles.menuItem}
+  onPress={() => setScreen('inventory')}
+>
+  <Text style={styles.menuIcon}>📦</Text>
+  <Text style={styles.menuLabel}>Inventory</Text>
+  <Text style={styles.menuSub}>Stock hernus</Text>
+</TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuIcon}>📊</Text>
-          <Text style={styles.menuLabel}>Paisa Report</Text>
-          <Text style={styles.menuSub}>Weekly summary</Text>
-        </TouchableOpacity>
-
+     <TouchableOpacity
+  style={styles.menuItem}
+  onPress={() => setScreen('paisaReport')}
+>
+  <Text style={styles.menuIcon}>📊</Text>
+  <Text style={styles.menuLabel}>Paisa Report</Text>
+  <Text style={styles.menuSub}>Weekly summary</Text>
+</TouchableOpacity>
       </View>
 
     </ScrollView>

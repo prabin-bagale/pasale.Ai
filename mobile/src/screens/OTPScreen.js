@@ -1,3 +1,4 @@
+import { verifyOTP } from '../api';
 import React, { useState } from 'react';
 import {
   View,
@@ -13,19 +14,25 @@ export default function OTPScreen({ phone, onSuccess }) {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
-  function handleVerify() {
+ async function handleVerify() {
     if (!otp || otp.length !== 6) {
       Alert.alert('Galat OTP', '6 digit OTP halunus');
       return;
     }
 
     setLoading(true);
-
-    // We will connect to real API later
-    setTimeout(() => {
+    try {
+      const result = await verifyOTP(phone, otp);
+      if (result.success) {
+        onSuccess(result.shop, phone);
+      } else {
+        Alert.alert('Galat OTP', result.error || 'OTP milएन');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Server sanga connect हुन सकिएन');
+    } finally {
       setLoading(false);
-      onSuccess();
-    }, 1500);
+    }
   }
 
   return (

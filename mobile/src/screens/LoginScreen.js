@@ -1,3 +1,4 @@
+import { sendOTP } from '../api';
 import React, { useState } from 'react';
 import {
   View,
@@ -15,18 +16,25 @@ export default function LoginScreen({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
-  function handleSendOTP() {
+  async function handleSendOTP() {
     if (!phone || phone.length !== 10) {
       Alert.alert('Galat number', 'Nepal ko 10 digit phone number halunus');
       return;
     }
 
     setLoading(true);
-
-    setTimeout(() => {
+    try {
+      const result = await sendOTP(phone);
+      if (result.success) {
+        setOtpSent(true);
+      } else {
+        Alert.alert('Error', result.error || 'OTP pathauन सकिएन');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Server sanga connect हुन सकिएन');
+    } finally {
       setLoading(false);
-      setOtpSent(true);
-    }, 1500);
+    }
   }
 
   // Show OTP screen after OTP is sent
