@@ -1,34 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Share
+  Share,
+  ActivityIndicator
 } from 'react-native';
+import { getReport } from '../api';
 
-export default function PaisaReportScreen({ onBack }) {
+export default function PaisaReportScreen({ onBack, shopId }) {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const report = {
-    shopName: 'Ram Kirana Store',
-    totalUdhar: 2000,
-    debtorsCount: 1,
-    collectedThisWeek: 500,
-    lowStockCount: 1,
-    totalCustomers: 3,
-  };
+  useEffect(() => {
+    loadReport();
+  }, []);
+
+  async function loadReport() {
+    try {
+      const result = await getReport(shopId);
+      if (result.success) {
+        setReport(result);
+      }
+    } catch (err) {
+      console.log('Report error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleShare() {
-    const message =
-      `📊 *${report.shopName} — Hapta Report*\n\n` +
-      `💰 Total udhar baaki: NPR ${report.totalUdhar}\n` +
-      `👥 Udhar customers: ${report.debtorsCount}\n` +
-      `✅ Is hapta aako: NPR ${report.collectedThisWeek}\n` +
-      `📦 Low stock items: ${report.lowStockCount}\n\n` +
-      `Subha din hos! 🙏`;
+    if (!report) return;
+    await Share.share({ message: report.whatsappMessage });
+  }
 
-    await Share.share({ message });
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color="#3ddc84" size="large" />
+        <Text style={styles.loadingText}>Report load gardai chha...</Text>
+      </View>
+    );
   }
 
   return (
@@ -48,9 +62,11 @@ export default function PaisaReportScreen({ onBack }) {
 
       <View style={styles.mainCard}>
         <Text style={styles.mainLabel}>Total Udhar Baaki</Text>
-        <Text style={styles.mainAmount}>NPR {report.totalUdhar}</Text>
+        <Text style={styles.mainAmount}>
+          NPR {report?.summary.totalUdhar}
+        </Text>
         <Text style={styles.mainSub}>
-          {report.debtorsCount} customer le tirnu baaki chha
+          {report?.summary.debtorsCount} customer le tirnu baaki chha
         </Text>
       </View>
 
@@ -58,14 +74,14 @@ export default function PaisaReportScreen({ onBack }) {
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            NPR {report.collectedThisWeek}
+            NPR {report?.summary.collectedThisWeek}
           </Text>
           <Text style={styles.statLabel}>Is hapta aako</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {report.totalCustomers}
+            {report?.summary.totalCustomers}
           </Text>
           <Text style={styles.statLabel}>Jamma customers</Text>
         </View>
@@ -73,16 +89,16 @@ export default function PaisaReportScreen({ onBack }) {
         <View style={styles.statCard}>
           <Text style={[
             styles.statValue,
-            report.lowStockCount > 0 && styles.statWarning
+            report?.summary.lowStockCount > 0 && styles.statWarning
           ]}>
-            {report.lowStockCount}
+            {report?.summary.lowStockCount}
           </Text>
           <Text style={styles.statLabel}>Low stock items</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {report.debtorsCount}
+            {report?.summary.debtorsCount}
           </Text>
           <Text style={styles.statLabel}>Udhar baaki</Text>
         </View>
@@ -92,12 +108,7 @@ export default function PaisaReportScreen({ onBack }) {
       <View style={styles.messageCard}>
         <Text style={styles.messageTitle}>WhatsApp Report</Text>
         <Text style={styles.messageText}>
-          📊 *{report.shopName} — Hapta Report*{'\n\n'}
-          💰 Total udhar baaki: NPR {report.totalUdhar}{'\n'}
-          👥 Udhar customers: {report.debtorsCount}{'\n'}
-          ✅ Is hapta aako: NPR {report.collectedThisWeek}{'\n'}
-          📦 Low stock items: {report.lowStockCount}{'\n\n'}
-          Subha din hos! 🙏
+          {report?.whatsappMessage}
         </Text>
       </View>
 
@@ -119,6 +130,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0f0d',
     padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0a0f0d',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: '#9bbfaa',
+    marginTop: 16,
+    fontSize: 15,
   },
   header: {
     flexDirection: 'row',

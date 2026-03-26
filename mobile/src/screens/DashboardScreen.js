@@ -1,7 +1,9 @@
+import React, { useState, useEffect } from 'react';
+import { getReport } from '../api';
 import InventoryScreen from './InventoryScreen';
 import PaisaReportScreen from './PaisaReportScreen';
 import AddUdharScreen from './AddUdharScreen';
-import React, { useState } from 'react';
+
 import {
   View,
   Text,
@@ -13,6 +15,25 @@ import UdharBookScreen from './UdharBookScreen';
 
 export default function DashboardScreen({ shopId }) {
  const [screen, setScreen] = useState('dashboard');
+const [report, setReport] = useState(null);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+    loadReport();
+  }, []);
+
+  async function loadReport() {
+    try {
+      const result = await getReport(shopId);
+      if (result.success) {
+        setReport(result.summary);
+      }
+    } catch (err) {
+      console.log('Report load error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
 if (screen === 'udharBook') {
     return (
@@ -22,26 +43,32 @@ if (screen === 'udharBook') {
       />
     );
   }
-  if (screen === 'addUdhar') {
+if (screen === 'addUdhar') {
     return (
       <AddUdharScreen
         onBack={() => setScreen('dashboard')}
-        onSuccess={() => setScreen('dashboard')}
+        onSuccess={() => {
+          setScreen('dashboard');
+          loadReport();
+        }}
+        shopId={shopId}
       />
     );
   }
-  if (screen === 'inventory') {
+if (screen === 'inventory') {
     return (
       <InventoryScreen
         onBack={() => setScreen('dashboard')}
+        shopId={shopId}
       />
     );
   }
 
-  if (screen === 'paisaReport') {
+ if (screen === 'paisaReport') {
     return (
       <PaisaReportScreen
         onBack={() => setScreen('dashboard')}
+        shopId={shopId}
       />
     );
   }
@@ -53,12 +80,15 @@ if (screen === 'udharBook') {
         <Text style={styles.shopName}>Ram Kirana Store</Text>
         <Text style={styles.greeting}>Subha prabhat! 🙏</Text>
       </View>
-
-      <View style={styles.udharCard}>
-        <Text style={styles.udharLabel}>Total Udhar Baaki</Text>
-        <Text style={styles.udharAmount}>NPR 2,000</Text>
-        <Text style={styles.udharSub}>1 customer le tirnu baaki chha</Text>
-      </View>
+<View style={styles.udharCard}>
+  <Text style={styles.udharLabel}>Total Udhar Baaki</Text>
+  <Text style={styles.udharAmount}>
+    NPR {report ? report.totalUdhar : '...'}
+  </Text>
+  <Text style={styles.udharSub}>
+    {report ? `${report.debtorsCount} customer le tirnu baaki chha` : 'Loading...'}
+  </Text>
+</View>
 
       <Text style={styles.sectionTitle}>Ke garnu cha?</Text>
 

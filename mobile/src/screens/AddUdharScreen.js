@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,48 +7,171 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  ScrollView
+  ScrollView,
+  FlatList
 } from 'react-native';
+import { getCustomers, addTransaction } from '../api';
 
-export default function AddUdharScreen({ onBack, onSuccess }) {
+export default function AddUdharScreen({ onBack, onSuccess, shopId }) {
+  const [step, setStep] = useState('selectCustomer');
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [type, setType] = useState('credit');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [search, setSearch] = useState('');
 
-  function handleSave() {
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  async function loadCustomers() {
+    try {
+      const result = await getCustomers(shopId);
+      if (result.customers) {
+        setCustomers(result.customers);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Customers load हुन सकिएन');
+    } finally {
+      setLoadingCustomers(false);
+    }
+  }
+
+  async function handleSave() {
     if (!amount || parseFloat(amount) <= 0) {
       Alert.alert('Amount chaincha', 'Sahi amount halunus');
       return;
     }
 
     setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert(
-        type === 'credit' ? 'Udhar Thapiyो!' : 'Payment Thapiyो!',
-        `NPR ${amount} successfully logged`,
-        [{ text: 'Thik chha', onPress: onSuccess }]
+    try {
+      const result = await addTransaction(
+        shopId,
+        selectedCustomer.id,
+        type,
+        amount,
+        note
       );
-    }, 1000);
+
+      if (result.success) {
+        Alert.alert(
+          type === 'credit' ? 'Udhar Thapiyो!' : 'Payment Thapiyो!',
+          `${selectedCustomer.name} ko lagi NPR ${amount} saved!\nNew balance: NPR ${result.newBalance}`,
+          [{ text: 'Thik chha', onPress: onSuccess }]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Save गर्न सकिएन');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Server sanga connect हुन सकिएन');
+    } finally {
+      setLoading(false);
+    }
   }
 
+  const filtered = customers.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // ── STEP 1: Select Customer ──────────────────────
+  if (step === 'selectCustomer') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack}>
+            <Text style={styles.back}>← Farka</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Kun Customer?</Text>
+          <View style={{ width: 60 }} />
+        </View>
+
+        <TextInput
+          style={styles.search}
+          placeholder="Customer khojnus..."
+          placeholderTextColor="#3d5870"
+          value={search}
+          onChangeText={setSearch}
+        />
+
+        {loadingCustomers ? (
+          <ActivityIndicator color="#3ddc84" size="large" style={{ marginTop: 40 }} />
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.customerCard}
+                onPress={() => {
+                  setSelectedCustomer(item);
+                  setStep('addUdhar');
+                }}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {item.name.charAt(0)}
+                  </Text>
+                </View>
+                <View style={styles.customerInfo}>
+                  <Text style={styles.customerName}>{item.name}</Text>
+                  <Text style={styles.customerPhone}>{item.phone}</Text>
+                </View>
+                <View style={styles.balanceContainer}>
+                  <Text style={[
+                    styles.balance,
+                    parseFloat(item.balance) > 0 ? styles.balanceOwed : styles.balanceClear
+                  ]}>
+                    NPR {item.balance}
+                  </Text>
+                  <Text style={styles.balanceLabel}>
+                    {parseFloat(item.balance) > 0 ? 'Baaki' : 'Clear ✓'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>
+                Koi customer bhेटिएन
+              </Text>
+            }
+          />
+        )}
+      </View>
+    );
+  }
+
+  // ── STEP 2: Add Udhar or Payment ─────────────────
   return (
     <ScrollView style={styles.container}>
-
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity onPress={() => setStep('selectCustomer')}>
           <Text style={styles.back}>← Farka</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Udhar Log Garnus</Text>
+        <Text style={styles.title}>Udhar Log</Text>
         <View style={{ width: 60 }} />
+      </View>
+
+      <View style={styles.selectedCustomerCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {selectedCustomer.name.charAt(0)}
+          </Text>
+        </View>
+        <View>
+          <Text style={styles.selectedName}>{selectedCustomer.name}</Text>
+          <Text style={styles.selectedBalance}>
+            Haal baaki: NPR {selectedCustomer.balance}
+          </Text>
+        </View>
       </View>
 
       <Text style={styles.label}>Kun kura?</Text>
       <View style={styles.typeRow}>
         <TouchableOpacity
-          style={[styles.typeBtn, type === 'credit' && styles.typeBtnActive]}
+          style={[styles.typeBtn, type === 'credit' && styles.typeBtnRed]}
           onPress={() => setType('credit')}
         >
           <Text style={[
@@ -60,7 +183,7 @@ export default function AddUdharScreen({ onBack, onSuccess }) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.typeBtn, type === 'payment' && styles.typeBtnActiveGreen]}
+          style={[styles.typeBtn, type === 'payment' && styles.typeBtnGreen]}
           onPress={() => setType('payment')}
         >
           <Text style={[
@@ -124,17 +247,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 60,
-    marginBottom: 32,
+    marginBottom: 20,
   },
-  back: {
-    color: '#3ddc84',
+  back: { color: '#3ddc84', fontSize: 15 },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#e2eaf5' },
+  search: {
+    backgroundColor: '#141f18',
+    borderRadius: 8,
+    padding: 14,
+    color: '#e2eaf5',
     fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#1e2d3d',
+    marginBottom: 16,
   },
-  title: {
-    fontSize: 20,
+  customerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141f18',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#1e2d3d',
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#1a2920',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: '#3ddc84',
+  },
+  avatarText: {
+    color: '#3ddc84',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  customerInfo: { flex: 1 },
+  customerName: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#e2eaf5',
+    marginBottom: 4,
   },
+  customerPhone: { fontSize: 13, color: '#3d5870' },
+  balanceContainer: { alignItems: 'flex-end' },
+  balance: { fontSize: 15, fontWeight: 'bold' },
+  balanceOwed: { color: '#f87171' },
+  balanceClear: { color: '#3ddc84' },
+  balanceLabel: { fontSize: 11, color: '#3d5870', marginTop: 2 },
+  emptyText: {
+    color: '#3d5870',
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 15,
+  },
+  selectedCustomerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141f18',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#3ddc84',
+    gap: 14,
+  },
+  selectedName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#e2eaf5',
+    marginBottom: 4,
+  },
+  selectedBalance: { fontSize: 13, color: '#9bbfaa' },
   label: {
     fontSize: 13,
     color: '#9bbfaa',
@@ -156,11 +345,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1e2d3d',
   },
-  typeBtnActive: {
+  typeBtnRed: {
     backgroundColor: '#f87171',
     borderColor: '#f87171',
   },
-  typeBtnActiveGreen: {
+  typeBtnGreen: {
     backgroundColor: '#3ddc84',
     borderColor: '#3ddc84',
   },
@@ -169,9 +358,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#9bbfaa',
   },
-  typeBtnTextActive: {
-    color: '#0a0f0d',
-  },
+  typeBtnTextActive: { color: '#0a0f0d' },
   amountInput: {
     backgroundColor: '#141f18',
     borderRadius: 8,
@@ -200,13 +387,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+    marginBottom: 40,
   },
-  buttonGreen: {
-    backgroundColor: '#3ddc84',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
+  buttonGreen: { backgroundColor: '#3ddc84' },
+  buttonDisabled: { opacity: 0.6 },
   buttonText: {
     color: '#0a0f0d',
     fontSize: 16,

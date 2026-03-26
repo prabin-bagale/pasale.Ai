@@ -49,3 +49,32 @@ export async function getReport(shopId) {
   );
   return response.json();
 }
+
+export async function getProducts(shopId) {
+  const response = await fetch(
+    `${BASE_URL}/api/products?shopId=${shopId}`
+  );
+  return response.json();
+}
+
+export async function addProduct(shopId, name, unit, currentQty, minQtyAlert) {
+  const response = await fetch(`${BASE_URL}/api/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      shopId,
+      name,
+      unit,
+      currentQty: parseFloat(currentQty),
+      minQtyAlert: parseFloat(minQtyAlert) || 0
+    })
+  });
+  return response.json();
+}
+
+export async function getLowStock(shopId) {
+  const response = await fetch(
+    `${BASE_URL}/api/products/low-stock?shopId=${shopId}`
+  );
+  return response.json();
+}

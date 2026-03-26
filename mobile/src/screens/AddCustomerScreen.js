@@ -1,3 +1,4 @@
+import { addCustomer } from '../api';
 import React, { useState } from 'react';
 import {
   View,
@@ -10,30 +11,36 @@ import {
   ScrollView
 } from 'react-native';
 
-export default function AddCustomerScreen({ onBack, onSuccess }) {
+export default function AddCustomerScreen({ onBack, onSuccess,shopId  }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!name) {
       Alert.alert('Naam chaincha', 'Customer ko naam halunus');
       return;
     }
 
     setLoading(true);
-
-    setTimeout(() => {
+    try {
+      const result = await addCustomer(shopId, name, phone, address);
+      if (result.success) {
+        Alert.alert(
+          'Customer Thapiyो!',
+          `${name} lai udhar book ma thapiyो`,
+          [{ text: 'Thik chha', onPress: onSuccess }]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Customer thapन सकिएन');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Server sanga connect हुन सकिएन');
+    } finally {
       setLoading(false);
-      Alert.alert(
-        'Customer Thapiyो!',
-        `${name} lai udhar book ma thapiyो`,
-        [{ text: 'Thik chha', onPress: onSuccess }]
-      );
-    }, 1000);
+    }
   }
-
   return (
     <ScrollView style={styles.container}>
 

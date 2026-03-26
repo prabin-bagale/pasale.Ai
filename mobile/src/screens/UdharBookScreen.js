@@ -35,15 +35,18 @@ useEffect(() => {
     }
   }
 
-  if (showAddCustomer) {
+ if (showAddCustomer) {
     return (
       <AddCustomerScreen
         onBack={() => setShowAddCustomer(false)}
-        onSuccess={() => setShowAddCustomer(false)}
+        shopId={shopId}
+        onSuccess={() => {
+          setShowAddCustomer(false);
+          loadCustomers();
+        }}
       />
     );
   }
-
 
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase())

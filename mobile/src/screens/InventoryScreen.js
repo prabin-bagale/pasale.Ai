@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,36 +9,60 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { getProducts, addProduct } from '../api';
 
-export default function InventoryScreen({ onBack }) {
+export default function InventoryScreen({ onBack, shopId }) {
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [qty, setQty] = useState('');
   const [minQty, setMinQty] = useState('');
   const [unit, setUnit] = useState('pcs');
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const products = [
-    { id: '1', name: 'Tata Salt 1kg',      unit: 'pcs',    current_qty: 45, min_qty_alert: 20, isLow: false },
-    { id: '2', name: 'Aashirvaad Atta 5kg', unit: 'bag',    current_qty: 8,  min_qty_alert: 10, isLow: true  },
-    { id: '3', name: 'Soyabean Oil 1L',     unit: 'bottle', current_qty: 18, min_qty_alert: 12, isLow: false },
-  ];
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
-  function handleAddProduct() {
+  async function loadProducts() {
+    try {
+      const result = await getProducts(shopId);
+      if (result.products) {
+        setProducts(result.products);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Products load हुन सकिएन');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddProduct() {
     if (!name || !qty) {
       Alert.alert('Chaincha', 'Naam ra quantity halunus');
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setShowAddProduct(false);
-      setName(''); setQty(''); setMinQty('');
-      Alert.alert('Product Thapiyो!', `${name} inventory ma thapiyो`);
-    }, 1000);
+
+    setSaving(true);
+    try {
+      const result = await addProduct(shopId, name, unit, qty, minQty);
+      if (result.success) {
+        setShowAddProduct(false);
+        setName(''); setQty(''); setMinQty('');
+        Alert.alert('Product Thapiyो!', `${name} inventory ma thapiyो`);
+        loadProducts();
+      } else {
+        Alert.alert('Error', result.error || 'Product थप्न सकिएन');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Server sanga connect हुन सकिएन');
+    } finally {
+      setSaving(false);
+    }
   }
 
-  const lowStock = products.filter(p => p.isLow);
+  const lowStock = products.filter(p => p.is_low_stock);
 
   if (showAddProduct) {
     return (
@@ -97,11 +121,11 @@ export default function InventoryScreen({ onBack }) {
         </View>
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, saving && styles.buttonDisabled]}
           onPress={handleAddProduct}
-          disabled={loading}
+          disabled={saving}
         >
-          {loading
+          {saving
             ? <ActivityIndicator color="#0a0f0d" />
             : <Text style={styles.buttonText}>Product Thapnus</Text>
           }
@@ -122,41 +146,54 @@ export default function InventoryScreen({ onBack }) {
         </TouchableOpacity>
       </View>
 
-      {lowStock.length > 0 && (
-        <View style={styles.alertCard}>
-          <Text style={styles.alertTitle}>
-            ⚠️ {lowStock.length} items stock kam chha!
+      {loading ? (
+        <ActivityIndicator color="#3ddc84" size="large" style={{ marginTop: 40 }} />
+      ) : (
+        <>
+          {lowStock.length > 0 && (
+            <View style={styles.alertCard}>
+              <Text style={styles.alertTitle}>
+                ⚠️ {lowStock.length} items stock kam chha!
+              </Text>
+              {lowStock.map(p => (
+                <Text key={p.id} style={styles.alertItem}>
+                  • {p.name} — sirf {p.current_qty} {p.unit} baki
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>
+            Sabai Products ({products.length})
           </Text>
-          {lowStock.map(p => (
-            <Text key={p.id} style={styles.alertItem}>
-              • {p.name} — sirf {p.current_qty} {p.unit} baki
-            </Text>
+
+          {products.map(product => (
+            <View key={product.id} style={styles.productCard}>
+              <View style={styles.productInfo}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productUnit}>{product.unit}</Text>
+              </View>
+              <View style={styles.stockInfo}>
+                <Text style={[
+                  styles.stockQty,
+                  product.is_low_stock ? styles.stockLow : styles.stockOk
+                ]}>
+                  {product.current_qty}
+                </Text>
+                <Text style={styles.stockLabel}>
+                  {product.is_low_stock ? '⚠️ Kam chha' : '✓ Thik chha'}
+                </Text>
+              </View>
+            </View>
           ))}
-        </View>
+
+          {products.length === 0 && (
+            <Text style={styles.emptyText}>
+              Koi product bhेटिएन. + Thapnus tap garnus!
+            </Text>
+          )}
+        </>
       )}
-
-      <Text style={styles.sectionTitle}>Sabai Products</Text>
-
-      {products.map(product => (
-        <View key={product.id} style={styles.productCard}>
-          <View style={styles.productInfo}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productUnit}>{product.unit}</Text>
-          </View>
-          <View style={styles.stockInfo}>
-            <Text style={[
-              styles.stockQty,
-              product.isLow ? styles.stockLow : styles.stockOk
-            ]}>
-              {product.current_qty}
-            </Text>
-            <Text style={styles.stockLabel}>
-              {product.isLow ? '⚠️ Kam chha' : '✓ Thik chha'}
-            </Text>
-          </View>
-        </View>
-      ))}
-
     </ScrollView>
   );
 }
@@ -269,4 +306,10 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#0a0f0d', fontSize: 16, fontWeight: 'bold' },
+  emptyText: {
+    color: '#3d5870',
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 15,
+  },
 });
